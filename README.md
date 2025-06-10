@@ -25,9 +25,4 @@
 <br />
 
 此项目只做arm版构建镜像使用
-  <img src="https://contrib.rocks/image?repo=xorbitsai/inference" />
-</a>
 
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=xorbitsai/inference&type=Date)](https://star-history.com/#xorbitsai/inference&Date)
