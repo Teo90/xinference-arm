@@ -29,20 +29,23 @@ jobs:
         username: teo90  # 使用小写用户名 
         password: ${{ secrets.HUB_GITHUB_TOKEN }}
 
-    - name: Build multi-arch image
+    - name: Build multi-arch image and export as tar.gz
       run: |
         TAG=$(date +%s)
+        IMAGE_NAME=ghcr.io/teo90/oort-xinference:${{ matrix.platform }}-$TAG
+
+        # 使用 Buildx 构建并导出为 tar 文件（替代 docker save）
         docker buildx build \
-          --platform ${{ matrix.platform }} \  # 动态使用矩阵中的平台 [[4]]
+          --platform ${{ matrix.platform }} \
           -f xinference/deploy/docker/cpu.Dockerfile \
-          -t ghcr.io/teo90/oort-xinference:${{ matrix.platform }}-$TAG \
-          --push .  # 直接推送多架构镜像 
-        docker save ghcr.io/teo90/oort-xinference:${{ matrix.platform }}-$TAG | gzip > oort-xinference-arm64.tar.gz
+          --output type=tar,dest=/tmp/oort-xinference-${{ matrix.platform }}-$TAG.tar.gz \
+          -t $IMAGE_NAME \
+          --push .  # 推送镜像到 GHCR
 
     - name: Upload artifact (only for arm64)
-      if: matrix.platform == 'linux/arm64'
+      if: matrix.platform == 'linux/arm64/v8'  # 精确匹配矩阵平台名称
       uses: actions/upload-artifact@v4
       with:
         name: oort-xinference-arm64
-        path: /tmp/oort-xinference-arm64.tar.gz
+        path: /tmp/oort-xinference-linux-arm64/v8-*.tar.gz  # 匹配导出的 tar 文件
         retention-days: 1
