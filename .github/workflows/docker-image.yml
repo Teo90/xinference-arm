@@ -1,0 +1,48 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux/arm64/v8]  # 定义多架构构建矩阵[linux/amd64, linux/arm64/v8] 
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu@v3  # 安装 QEMU 以支持跨架构构建
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx@v3  # 配置 Buildx 构建器 
+
+    - name: Login to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: teo90  # 使用小写用户名 
+        password: ${{ secrets.HUB_GITHUB_TOKEN }}
+
+    - name: Build multi-arch image
+      run: |
+        TAG=$(date +%s)
+        docker buildx build \
+          --platform ${{ matrix.platform }} \  # 动态使用矩阵中的平台 [[4]]
+          -f xinference/deploy/docker/cpu.Dockerfile \
+          -t ghcr.io/teo90/oort-xinference:${{ matrix.platform }}-$TAG \
+          --push .  # 直接推送多架构镜像 
+        docker save ghcr.io/teo90/oort-xinference:${{ matrix.platform }}-$TAG | gzip > oort-xinference-arm64.tar.gz
+
+    - name: Upload artifact (only for arm64)
+      if: matrix.platform == 'linux/arm64'
+      uses: actions/upload-artifact@v4
+      with:
+        name: oort-xinference-arm64
+        path: /tmp/oort-xinference-arm64.tar.gz
+        retention-days: 1
